@@ -7,6 +7,12 @@ import MFSKDemodulator, DePacketizer, MFSKSymbolDecoder, time, logging, sys
 from scipy.io import wavfile
 import MFSKModulator,Packetizer
 import sounddevice as sd
+import soundfile as sf
+from scipy.io import wavfile
+
+from thread import start_new_thread
+import StringIO
+
 
 
 #Networkrelated variables
@@ -16,7 +22,7 @@ packet_size = 8192
 port_host = 8080
 
 #Audio Related variables
-symbol_rate = 200#15.625
+symbol_rate = 15.625
 base_freq = 1500
 bits_per_symbol = 4
 
@@ -26,7 +32,7 @@ preamble_tones = [0,15,0,15,0,15,0,15,0,15,0,15,0,15,0,15,0,15,0,15,0,15,0,15,0,
 symb_dec = ''
 packet_extract = ''
 handler = ''
-
+recordable_file = "test.wav"
 
 def zlib_compress(text):
     text_size=sys.getsizeof(text)
@@ -40,13 +46,25 @@ def zlib_decompress(compressed):
 
 def recover_packet(payload):
     print 'Packet recieved:',payload
-    handler.handle_sent_data(payload)
+    if not Connection_status:
+        handler.handle_sent_data(payload)
 
 
 def parse_symbol(tone):
         tone_bits = symb_dec.tone_to_bits(tone['symbol'])
         packet_extract.process_data(tone_bits)
 
+
+def callback_mic(indata, frames, time, status):
+    wavhndl_to_data(indata.copy())
+
+def launch_record():
+    # Make sure the file is opened before recording anything:
+    with sf.SoundFile(recordable_file, mode='x', samplerate=8000,
+                      channels=1) as file:
+        with sd.InputStream(samplerate=8000, device=0,
+                            channels=1, callback=callback_mic):
+            print('#' * 80)
 
 def wavhndl_to_data():
     global symb_dec,packet_extract
@@ -90,13 +108,13 @@ class data_recv(asyncore.dispatcher_with_send):
         data = self.recv(packet_size)
         modulated = data_to_wavhndl(data)
         sd.play(modulated[0],modulated[1])
+        sd.wait() #wait for data to play
+        print 'stat:',sd.get_status()
         if data:
             print ":Transmitting ("+str(len(modulated[0]))+") to dest"
             print "Array:",modulated
             print "data sent:",data
         
-
-
     def handle_close(self):
         self.close()
         Connection_status = False
@@ -123,6 +141,11 @@ class proxy(asyncore.dispatcher):
             print 'Incoming connection from %s' % repr(addr)
             handler = data_recv(sock)
 
-wavhndl_to_data()
-#server = proxy('localhost', port_host)
-#asyncore.loop()
+#slk = data_to_wavhndl("silence")
+#sd.play(slk[0],slk[1])
+#sd.wait()
+#wavfile.write('generated_MFSK16_packets.wav',slk[1],slk[0])
+#wavhndl_to_data()
+server = proxy('localhost', port_host)
+start_new_thread(launch_record,())
+asyncore.loop()

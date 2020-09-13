@@ -102,7 +102,9 @@ class MFSKDemodulator(object):
         #for sample in data:
         #    self.symbol_detect(sample)
 
+        print data,"kazhinj"
         data = np.reshape(data,(-1,self.block_length))
+        print data
 
         for block in data:
             self.symbol_detect(block)
@@ -239,38 +241,6 @@ class MFSKDemodulator(object):
         # Now we normalise the values to +- 1.
         b = b/np.sum(np.absolute(self.fft_energy_buffer[:,-1]))
         return b
-
-
-
-
-# Test script.
-if __name__ == "__main__":
-    filename = 'generated_MFSK16_packets.wav';
-
-    fs, data = wavfile.read('generated_MFSK16_packets.wav')
-
-    if(data.dtype == np.int16):
-        data = data.astype(np.float)/2**16
-    elif(data.dtype == np.int32):
-        data = data.astype(np.float)/2**32
-
-    demod = MFSKDemodulator(sample_rate = fs)
-
-    root = logging.getLogger()
-    ch = logging.StreamHandler(sys.stdout)
-    ch.setLevel(logging.DEBUG)
-    root.addHandler(ch)
-    root.setLevel(logging.DEBUG)
-
-    # Feed data in X samples at a time. This kind of simulates getting data from a buffered audio stream.
-    chunk_size = 1024
-    i = 0
-    while (i+chunk_size < len(data)): 
-        demod.consume(data[i:i+chunk_size])
-        i = i + chunk_size
-
-    # process any remaning data.
-    demod.consume(data[i:])
 
 
 
