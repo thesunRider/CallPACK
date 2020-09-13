@@ -9,7 +9,7 @@ So CallPACK is basically a dailup connection that works on your soundcard instea
 
 
 Theoretically with a soundcard capable of a sample rate 48khz we can achieve upto 100kbps with this method.
-But in this case we have dailed down the sampling rate to 8k ,dail up the seetings if you want to increase the transer speed.
+But in this case we have dailed down the sampling rate to 8khz ,dail up the settings if you want to increase the transer speed.
 
 
 
